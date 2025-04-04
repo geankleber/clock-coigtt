@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Relógio Hora Mundial</title>
+    <title>Relógio time.is</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -28,11 +28,6 @@
             font-weight: bold;
             color: #333;
             margin: 15px 0;
-            transition: color 0.2s;
-        }
-        
-        #clock.pulse {
-            color: #4285f4;
         }
         
         #date {
@@ -76,33 +71,28 @@
             let syncComplete = false;
             let lastSyncTime = 0;
             
-            // Função para sincronizar com o WorldTimeAPI
+            // Função para sincronizar com o servidor time.is
             const syncWithServer = async () => {
                 try {
                     // Registra o tempo local antes da requisição
                     const localTimeBeforeRequest = Date.now();
                     
-                    // Faz a requisição para a WorldTimeAPI
-                    const response = await fetch('https://worldtimeapi.org/api/ip', {
+                    // Faz a requisição para o site time.is
+                    const response = await fetch('https://time.is/', {
                         method: 'GET',
+                        mode: 'cors',  // Necessário para requisições cross-origin
                         cache: 'no-store' // Evita caching
                     });
                     
                     // Registra o tempo local após a requisição
                     const localTimeAfterRequest = Date.now();
                     
-                    if (!response.ok) {
-                        throw new Error(`Erro na API: ${response.status}`);
-                    }
-                    
-                    // Processa os dados da resposta
-                    const data = await response.json();
-                    
                     // Estima o tempo de ida e volta (RTT)
                     const rtt = localTimeAfterRequest - localTimeBeforeRequest;
                     
-                    // A API retorna a hora em formato ISO
-                    const serverTime = new Date(data.datetime).getTime();
+                    // Extrai o cabeçalho Date da resposta
+                    const serverTimeStr = response.headers.get('Date');
+                    const serverTime = new Date(serverTimeStr).getTime();
                     
                     // Calcula o offset entre o servidor e o cliente
                     // Considerando metade do RTT como tempo aproximado de ida
@@ -111,15 +101,15 @@
                     // Atualiza status
                     syncComplete = true;
                     lastSyncTime = Date.now();
-                    syncMessageElement.textContent = `Sincronizado com WorldTimeAPI (${data.timezone})`;
+                    syncMessageElement.textContent = 'Sincronizado com time.is';
                     
                     // Atualiza o relógio imediatamente
                     updateClock();
                     
-                    console.log(`Sincronizado. Offset: ${serverTimeOffset}ms, RTT: ${rtt}ms, Timezone: ${data.timezone}`);
+                    console.log(`Sincronizado. Offset: ${serverTimeOffset}ms, RTT: ${rtt}ms`);
                 } catch (error) {
                     // Em caso de erro na sincronização
-                    console.error('Erro ao sincronizar com WorldTimeAPI:', error);
+                    console.error('Erro ao sincronizar com time.is:', error);
                     syncMessageElement.textContent = 'Usando hora local (falha na sincronização)';
                     
                     // Tenta novamente após 30 segundos
@@ -152,12 +142,6 @@
                 // Exibe informações do fuso horário
                 const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
                 timezoneElement.textContent = `${timeZone} (UTC${formatUTCOffset(now)})`;
-                
-                // Adiciona uma classe para efeito visual quando o segundo muda
-                clockElement.classList.add('pulse');
-                setTimeout(() => {
-                    clockElement.classList.remove('pulse');
-                }, 200);
             };
             
             // Formatar o offset UTC 
